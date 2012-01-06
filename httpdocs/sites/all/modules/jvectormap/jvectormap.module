@@ -1,0 +1,26 @@
+<?php
+/**
+ * @file
+ * Use jVectorMap with Drupal.
+ */
+
+/**
+ * Implements hook_init().
+ *
+ */
+ function jvectormap_init() {
+
+  // Since this file should only be loaded if a jvectormap is displayed, it cannot be
+  // declared in the info file.
+
+  //@todo: determine if a map is displayed on a page before we load the js.
+
+  //Load the worldmap, jvectormap and the css.
+  if ($path = libraries_get_path('jvectormap')) {
+    drupal_add_js($path . '/world-en.js');
+    drupal_add_js($path . '/jquery.vector-map.js');
+    drupal_add_css($path . '/jquery.vector-map.css');
+  }
+}
+
+

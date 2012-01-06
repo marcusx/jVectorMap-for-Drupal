@@ -1,0 +1,5 @@
+name = jVectorMap
+description = Allows the use of the jVectorMap map jQuery plugin.
+core = 7.x
+
+dependencies[] = libraries
