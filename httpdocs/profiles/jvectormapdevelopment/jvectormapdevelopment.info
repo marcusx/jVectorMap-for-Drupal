@@ -2,6 +2,6 @@ name = jVectorMap Development
 description = Basic setup for developing a jVectorMap module.
 version = VERSION
 core = 7.x
-
+dependencies[] = "jvectormapdevlopment"
 files[] = jvectormapdevelopment.profile
 
