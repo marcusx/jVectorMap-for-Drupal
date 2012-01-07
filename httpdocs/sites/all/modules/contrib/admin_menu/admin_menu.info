@@ -1,0 +1,13 @@
+name = Administration menu
+description = "Provides a dropdown menu to most administrative tasks and other common destinations (to users with the proper permissions)."
+package = Administration
+core = 7.x
+configure = admin/config/administration/admin_menu
+files[] = tests/admin_menu.test
+
+; Information added by drupal.org packaging script on 2012-01-06
+version = "7.x-3.x-dev"
+core = "7.x"
+project = "admin_menu"
+datestamp = "1325808072"
+

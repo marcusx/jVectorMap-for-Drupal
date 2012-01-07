@@ -1,0 +1,13 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the Admin Menu Hide module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function admin_menu_dropdown_uninstall() {
+  variable_del('admin_menu_dropdown_key');
+  variable_del('admin_menu_dropdown_default');
+}
