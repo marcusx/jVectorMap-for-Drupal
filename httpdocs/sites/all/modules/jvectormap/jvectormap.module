@@ -8,7 +8,7 @@
  * Implements hook_init().
  *
  */
- function jvectormap_init() {
+function jvectormap_init() {
 
   // Since this file should only be loaded if a jvectormap is displayed, it cannot be
   // declared in the info file.
