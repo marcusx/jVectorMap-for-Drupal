@@ -1,0 +1,85 @@
+<?php
+
+/**
+ * @file
+ *   Install, update and uninstall functions for the jvectormap module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function jvectormap_schema() {
+  $schema['jvectormap'] = array(
+    'description' => 'The jvectormap table.',
+    'export' => array(
+      'key' => 'machine_name',
+      'identifier' => 'map',
+      'default hook' => 'default_jvectormap_map',
+      'api' => array(
+        'owner' => 'jvectormap',
+        'api' => 'default_jvectormap_maps',
+        'minimum_version' => 1,
+        'current_version' => 1,
+      ),
+    ),
+    'fields' => array(
+      'machine_name' => array(
+        'description' => 'The primary identifier for a jvectormap map.',
+        'type' => 'varchar',
+        'length' => 255,
+      ),
+      'pid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+	'description' => 'Primary ID field for the table. Not used for anything except internal lookups.',
+        'no export' => TRUE,
+      ),
+      'description' => array(
+        'type' => 'varchar',
+	'length' => '255',
+	'description' => 'A human readable name of a map.',
+      ),
+      'background_color' => array(
+        'type' => 'varchar',
+        'length' => '128',
+        'description' => 'The background color for the map.',
+      ),
+      'foreground_color' => array(
+        'type' => 'varchar',
+        'length' => '128',
+        'description' => 'The foreground color for regions of the map.',
+      ),
+      'hover_color' => array(
+        'type' => 'varchar',
+        'length' => '128',
+        'description' => 'The hover color for regions of the map.',
+      ),
+      'map_area' => array(
+        'type' => 'int',
+        'description' => '0 = Custom, 1 = World, 2 = US, 3 = Europe, 4 = Germany',
+        'not null' => TRUE,
+        'default' => 1,  
+      ),
+      'map_area_custom' => array(
+        'type' => 'text',
+        'size' => 'big',
+        'description' => 'The generated code for a custom map. Only used if map_area is set to 0.',
+      ),
+      'width' => array(
+        'type' => 'int',
+	'description' => 'The width of the map in pixels.',
+      ),
+      'height' => array(
+        'type' => 'int',
+        'description' => 'The height of the map in pixels.',
+      ),
+
+    ),
+    'primary key' => array('pid'),
+    'unique keys' => array(
+      'machine_name' => array('machine_name'),
+    ),
+  );
+  return $schema;
+}

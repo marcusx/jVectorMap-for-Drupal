@@ -1,4 +1,11 @@
 <?php
+
+define('MAP_CUSTOM', 0);
+define('MAP_WORLD', 1);
+define('MAP_US', 2);
+define('MAP_EUROPE', 3);
+define('MAP_GERMANY', 4);
+
 /**
  * @file
  * Use jVectorMap with Drupal.
@@ -17,10 +24,122 @@ function jvectormap_init() {
 
   //Load the worldmap, jvectormap and the css.
   if ($path = libraries_get_path('jvectormap')) {
-    drupal_add_js($path . '/world-en.js');
-    drupal_add_js($path . '/jquery.vector-map.js');
-    drupal_add_css($path . '/jquery.vector-map.css');
+    //drupal_add_js($path . '/world-en.js');
+    //drupal_add_js($path . '/jquery.vector-map.js');
+    //drupal_add_css($path . '/jquery.vector-map.css');
   }
 }
 
+function jvectormap_display_map($container, $map) {
+  if ($path = libraries_get_path('jvectormap')) {
+    // Always add the main js and css files.
+    drupal_add_js($path . '/jquery.vector-map.js', array('weight' => 1));
+    drupal_add_css($path . '/jquery.vector-map.css');
 
+    if ($map->map_area != MAP_CUSTOM) {
+      // For non-custom maps (World, US, Europe, and Germany)
+      $maps = array(
+        MAP_WORLD => 'world-en',
+        MAP_US => 'usa-en',
+        MAP_EUROPE => 'europe-en',
+        MAP_GERMANY => 'germany-en',
+      );
+      // Add the appropriate map file
+      drupal_add_js($path . '/' . $maps[$map->map_area] . '.js', array('weight' => 2));
+      // The configuration options use hyphens instead of underscores
+      $js_map_var = str_replace('-', '_', $maps[$map->map_area]);
+      // Include the inline javascript that actually displays the map in the container
+      $js = <<<JS
+        (function ($) {
+          $(document).ready(function() {
+            $('#$container').vectorMap({
+              map: '$js_map_var',
+              backgroundColor: '{$map->background_color}',
+              color: '{$map->foreground_color}',
+              hoverColor: '{$map->hover_color}'
+            });
+          });
+        })(jQuery);
+JS;
+      drupal_add_js($js, array('type' => 'inline', 'scope' => 'footer', 'weight' => 3));
+    } else {
+      //@todo: Implement stuff for custom maps
+    }
+  }
+}
+
+/**
+ * Implementation of hook_ctools_plugin_api()
+ */
+function jvectormap_ctools_plugin_api($owner, $api) {
+  if ($owner == 'jvectormap' && $api == 'default_jvectormap_maps') {
+    return array('version' => 1);
+  }
+}
+
+/** 
+ * Implementation of hook_default_jvectormap_map().
+ */
+function jvectormap_default_jvectormap_map() {
+  $export = array();
+  $map = new stdClass;
+  $map->api_version = 1;
+  $map->machine_name = 'my_default_map';
+  $map->description = 'Default Map';
+  $map->map_area = MAP_WORLD;
+  $map->map_area_custom = '';
+  $map->height = '300';
+  $map->width = '300';
+  $map->background_color = '#505050';
+  $export['my_default_map'] = $map;
+  return $export;
+}
+
+/**
+ * Implementation of hook_ctools_plugin_directory().
+ */
+function jvectormap_ctools_plugin_directory($module, $type) {
+  if ($type == 'export_ui') {
+    return 'plugins/export_ui';
+  }
+}
+
+/**
+ * Implementation of hook_block_info()
+ */
+function jvectormap_block_info() {
+  $blocks = array();
+  // Expose blocks for every map, keyed to the machine_name column
+  $result = db_query("SELECT machine_name, description FROM {jvectormap}");
+  foreach ($result as $record) {
+    $blocks[$record->machine_name] = array(
+      'info' => 'jVectorMap: ' . $record->description,
+    );
+  }
+  return $blocks;
+}
+
+/**
+ * Implementation of hook_block_view()
+ */
+function jvectormap_block_view($delta = '') {
+  $block = array();
+  // Find the details for this paricular map (via the unique machine_name column)
+  $result = db_query("SELECT * FROM {jvectormap} WHERE machine_name = :delta", array(':delta' => $delta));
+  foreach ($result as $record) {
+    // use the machine_name to make a unique container ID
+    $container = 'jvectormap-container-' . $delta;
+    // add the resources and display the map
+    jvectormap_display_map($container, $record);
+    // output the HTML for the container, specifying height/width as needed
+    $inline_style = '';
+    if ($record->width > 0) {
+      $inline_style .= 'width:' . $record->width . 'px; ';
+    }
+    if ($record->height > 0) {
+      $inline_style .= 'height:' . $record->height . 'px; ';
+    }
+    $block['content'] = '<div id="' . $container . '" style="' . $inline_style . '"></div>';
+  }
+  return $block;
+}
