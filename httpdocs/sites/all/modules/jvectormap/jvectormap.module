@@ -30,7 +30,31 @@ function jvectormap_init() {
   }
 }
 
-function jvectormap_display_map($container, $map) {
+/*
+ * Internal function for the included pre-made maps (World, etc.)
+ */
+function jvectormap_basic_map_info() {
+  return array(
+    MAP_WORLD => array(
+      'file' => 'world-en.js',
+      'config' => 'world_en',
+    ),
+    MAP_US => array(
+      'file' =>	 'usa-en.js',
+      'config' => 'usa_en',
+    ),
+    MAP_EUROPE => array(
+      'file' =>	 'europe-en.js',
+      'config' => 'europe_en',
+    ),
+    MAP_GERMANY => array(
+      'file' =>	 'germany-en.js',
+      'config' => 'germany_en',
+    ),
+  );
+}
+
+function jvectormap_add_resources($map) {
   if ($path = libraries_get_path('jvectormap')) {
     // Always add the main js and css files.
     drupal_add_js($path . '/jquery.vector-map.js', array('weight' => 1));
@@ -38,29 +62,19 @@ function jvectormap_display_map($container, $map) {
 
     if ($map->map_area != MAP_CUSTOM) {
       // For non-custom maps (World, US, Europe, and Germany)
-      $maps = array(
-        MAP_WORLD => 'world-en',
-        MAP_US => 'usa-en',
-        MAP_EUROPE => 'europe-en',
-        MAP_GERMANY => 'germany-en',
-      );
+      $maps = jvectormap_basic_map_info();
       // Add the appropriate map file
-      drupal_add_js($path . '/' . $maps[$map->map_area] . '.js', array('weight' => 2));
-      // The configuration options use hyphens instead of underscores
-      $js_map_var = str_replace('-', '_', $maps[$map->map_area]);
+      drupal_add_js($path . '/' . $maps[$map->map_area]['file'], array('weight' => 2));
       // Include the inline javascript that actually displays the map in the container
-      $js = <<<JS
-        (function ($) {
-          $(document).ready(function() {
-            $('#$container').vectorMap({
-              map: '$js_map_var',
-              backgroundColor: '{$map->background_color}',
-              color: '{$map->foreground_color}',
-              hoverColor: '{$map->hover_color}'
-            });
-          });
-        })(jQuery);
-JS;
+      $map_config = drupal_json_encode(
+        array(
+      	  'map' => $maps[$map->map_area]['config'],
+      	  'backgroundColor' => $map->background_color,
+      	  'color' => $map->foreground_color,
+      	  'hoverColor' => $map->hover_color,
+        )
+      );
+      $js = "jQuery('#{$map->container}').vectorMap($map_config);";
       drupal_add_js($js, array('type' => 'inline', 'scope' => 'footer', 'weight' => 3));
     } else {
       //@todo: Implement stuff for custom maps
@@ -91,6 +105,8 @@ function jvectormap_default_jvectormap_map() {
   $map->height = '300';
   $map->width = '300';
   $map->background_color = '#505050';
+  $map->foreground_color = '#DDDDDD';
+  $map->hover_color = '#222222';
   $export['my_default_map'] = $map;
   return $export;
 }
@@ -127,19 +143,33 @@ function jvectormap_block_view($delta = '') {
   // Find the details for this paricular map (via the unique machine_name column)
   $result = db_query("SELECT * FROM {jvectormap} WHERE machine_name = :delta", array(':delta' => $delta));
   foreach ($result as $record) {
-    // use the machine_name to make a unique container ID
-    $container = 'jvectormap-container-' . $delta;
-    // add the resources and display the map
-    jvectormap_display_map($container, $record);
-    // output the HTML for the container, specifying height/width as needed
-    $inline_style = '';
-    if ($record->width > 0) {
-      $inline_style .= 'width:' . $record->width . 'px; ';
-    }
-    if ($record->height > 0) {
-      $inline_style .= 'height:' . $record->height . 'px; ';
-    }
-    $block['content'] = '<div id="' . $container . '" style="' . $inline_style . '"></div>';
+    $block['content'] = theme('jvectormap_map', array('map' => $record));
   }
   return $block;
+}
+
+/**
+ * Implementation of hook_theme()
+ */
+function jvectormap_theme() {
+  return array(
+    'jvectormap_map' => array(
+      'template' => 'jvectormap-map',
+      'variables' => array('map' => NULL),
+    ),
+  );
+}
+
+function template_preprocess_jvectormap_map(&$vars) {
+  $map = $vars['map'];
+  // use the machine_name to make a unique container ID
+  $map->container = 'jvectormap-container-' . $map->machine_name;
+  // add the resources (css and javascript) to display the map
+  jvectormap_add_resources($map);
+  // add some variables for use in the template file
+  $vars['height'] = $map->height;
+  $vars['width'] = $map->width;
+  $vars['container'] = $map->container;
+  // add a theme hook suggestion to allow for more targetted theming
+  $vars['theme_hook_suggestions'][] = 'jvectormap_map__' . $map->machine_name;
 }
